@@ -1,3 +1,4 @@
+const fs = require('fs-extra');
 const scraperObject = {
     url: 'https://eproc.rajasthan.gov.in/nicgep/app?page=FrontEndTendersByOrganisation&service=page',
     async scraper(browser){
@@ -6,41 +7,55 @@ const scraperObject = {
         await page.goto(this.url);
 
         await page.waitForSelector('#table');
+        await fs.writeFile('out.csv', 'Organisation Name\n')
+        let result = await page.$$eval('#table tr', rows => {
+            return Array.from(rows, row => {
+                let columns = row.querySelectorAll('td');
+                return Array.from(columns, column => column.querySelector('a.link2') === null ? column.innerHTML.replace(/(\r\n\t|\n|\r|\t)/gm, "") : column.querySelector('a.link2').href );
+            });
+        });
 
-        let table = await page.$('#table');
+        console.log(result.length);
+        console.log(result[1][2]);
+        console.log(result[2][2]);
+        
 
-        let urls = await table.$$('tr > td:nth-child(3)');
-        let urlsarr = Array.from(urls);
-        urlsarr.shift();
+        let pagePromise = (link) => new Promise(async(resolve, reject) => {
+            let newPage = await browser.newPage();
+            // console.log(`Navigating to ${link}...`);
+        
+            await newPage.goto(link);
+        await newPage.waitForSelector('#table');
 
-        // urlsarr = urlsarr.map(el => el.querySelector('a.link2').href);
+        let resultender = await newPage.$$eval('#table tr', rows => {
+            return Array.from(rows, row => {
+                let columns = row.querySelectorAll('td');
+                return Array.from(columns, column => column.querySelector('a') === null ? column.innerHTML.replace(/(\r\n\t|\n|\r|\t)/gm, "") : column.querySelector('a').innerHTML );
+            });
+        });
+        // console.log(resultender[1][0]);
+        // console.log(resultender[1][2]);
+        
+        resolve(resultender);
+            await newPage.close();
 
-        // let urls = await page.$$eval('#table tbody > tr', links => {
-        //     // console.log(links[0]);
-        //     links.shift();
-        //     console.log(links);
-        //     links = links.map(el => el.querySelector('td:nth-child(3) > a').href)
-        //     return links;
-        // });
-        console.log(urlsarr);
-        // let pagePromise = (link) => new Promise(async(resolve, reject) => {
-        //     let dataObj = {};
-        //     let newPage = await browser.newPage();
-        //     await newPage.goto(link);
-        //     dataObj['ePublisheDate'] = await newPage.$eval('', text => text.textContent);
-        //     dataObj['ClosingDate'] = await newPage.$eval('', text => text.textContent);
-        //     dataObj['OpeningDate'] = await newPage.$eval('', text => text.textContent);
-        //     dataObj['TenderID'] = await newPage.$eval('', text => text.textContent);
-        //     dataObj['OrganisationChain'] = await newPage.$eval('', text => text.textContent);
-        //     resolve(dataObj);
-        //     await newPage.close();
-
-        // });
-
-        // for(link in urls) {
-        //     let currentPageData = await pagePromise(urls[link]);
-        //     console.log(currentPageData);
-        // }
+        });
+        
+        for(let i=1; i<result.length; i++) {
+            let currentPageData = await pagePromise(result[i][2]);
+            await fs.appendFile('out.csv', `${result[i][1]}\n`);
+            
+            for(let j=0; j<currentPageData.length; j++)
+            {
+                for(let k in currentPageData[i])
+                await fs.appendFile('out.csv', `${currentPageData[j][k]}`);
+                await fs.appendFile('out.csv', '\n');
+            }
+            await fs.appendFile('out.csv', '\n');        
+            await fs.appendFile('out.csv', 'Organisation Name\n');        
+            
+            // console.log(currentPageData[i][4]);
+        }
     }
 }
 
