@@ -48,7 +48,7 @@ const scraperObject = {
             for(let j=0; j<currentPageData.length; j++)
             {
                 for(let k in currentPageData[i])
-                await fs.appendFile('out.csv', `${currentPageData[j][k]}`);
+                await fs.appendFile('out.csv', `${currentPageData[j][k]} `);
                 await fs.appendFile('out.csv', '\n');
             }
             await fs.appendFile('out.csv', '\n');        
